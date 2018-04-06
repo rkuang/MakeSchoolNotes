@@ -10,22 +10,40 @@ import UIKit
 
 class ListNotesTableViewController: UITableViewController {
     
+    var notes = [Note]() {
+        didSet {
+            tableView.reloadData()
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        notes = CoreDataHelper.retrieveNotes()
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // 1
-        return 10
+        return notes.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         // 2
         let cell = tableView.dequeueReusableCell(withIdentifier: "listNotesTableViewCell", for: indexPath) as! ListNotesTableViewCell
-        cell.noteTitleLabel.text = "note's title"
-        cell.noteModificationTimeLabel.text = "note's modification time"
+        let note = notes[indexPath.row]
+        cell.noteTitleLabel.text = note.title
+        cell.noteModificationTimeLabel.text = note.modificationTime?.convertToString() ?? "unknown"
         
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let noteToDelete = notes[indexPath.row]
+            CoreDataHelper.deleteNote(note: noteToDelete)
+            
+            notes = CoreDataHelper.retrieveNotes()
+        }
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -33,9 +51,27 @@ class ListNotesTableViewController: UITableViewController {
         guard let identifier = segue.identifier else { return }
         
         // 2
-        if identifier == "displayNote" {
-            print("Transitioning to the Display Note View Controller")
+        switch identifier {
+        case "displayNote":
+            print("table view cell pressed")
+
+            guard let indexPath = tableView.indexPathForSelectedRow else { return }
+            
+            let note = notes[indexPath.row]
+            let destination = segue.destination as! DisplayNoteViewController
+            destination.note = note
+            
+        case "createNote":
+            print("create note pressed")
+            
+        default:
+            print("unknown segue identifier")
+            
         }
+    }
+    
+    @IBAction func unwindWithSegue(_ segue: UIStoryboardSegue) {
+        notes = CoreDataHelper.retrieveNotes()
     }
     
 }
